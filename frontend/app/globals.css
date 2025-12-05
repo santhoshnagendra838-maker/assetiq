@@ -1,0 +1,50 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Custom markdown table styles */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.prose th {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.prose td {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem;
+}
+
+.prose tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* Smooth scrolling animation keyframe */
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1.4s infinite;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
