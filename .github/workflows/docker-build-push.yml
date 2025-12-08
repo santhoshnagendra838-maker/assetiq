@@ -1,4 +1,4 @@
-name: Build and Push Docker Images to AWS ECR
+name: CI/CD Pipeline
 
 on:
   push:
