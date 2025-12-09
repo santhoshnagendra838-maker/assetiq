@@ -29,7 +29,7 @@ export default function InstrumentComparisonUI() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/chat", {
+      const response = await fetch("http://assetiq-test-alb-1291527958.ap-south-1.elb.amazonaws.com/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +51,7 @@ export default function InstrumentComparisonUI() {
       setComparison({
         a: instrumentA,
         b: instrumentB,
-        response: "Error: Unable to fetch comparison data. Please ensure the backend server is running on http://localhost:8000"
+        response: "Error: Unable to fetch comparison data. Please ensure the backend server is running on http://assetiq-test-alb-1291527958.ap-south-1.elb.amazonaws.com"
       });
     } finally {
       setLoading(false);
