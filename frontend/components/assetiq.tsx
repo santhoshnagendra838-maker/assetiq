@@ -29,7 +29,8 @@ export default function InstrumentComparisonUI() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://assetiq-test-alb-1291527958.ap-south-1.elb.amazonaws.com/api/chat", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -31,7 +31,7 @@ AssetIQ is built as a monorepo with two main components:
 - **Framework**: FastAPI (Python)
 - **AI Integration**: OpenAI API (GPT-4o-mini)
 - **Features**:
-  - RESTful API with `/chat` endpoint
+  - RESTful API with `/api/chat` endpoint
   - CORS-enabled for cross-origin requests
   - Environment-based configuration
   - Automatic API documentation (Swagger/ReDoc)
@@ -51,7 +51,22 @@ git clone https://github.com/your-username/assetiq.git
 cd assetiq
 ```
 
-### 2. Backend Setup
+### 2. Environment Setup
+
+AssetIQ uses a centralized configuration managed by a root `.env` file.
+
+```bash
+# Copy example configuration to .env
+cp env.example .env
+
+# Edit .env and add your secrets (AWS keys, OpenAI Key, etc.)
+# vim .env
+
+# Load environment variables into your shell
+source ./export_env.sh
+```
+
+### 3. Backend Setup
 
 ```bash
 cd backend
@@ -72,7 +87,7 @@ The backend will be available at `http://localhost:8000`
 
 📖 **Detailed backend setup**: See [backend/README.md](./backend/README.md)
 
-### 3. Frontend Setup
+### 4. Frontend Setup
 
 ```bash
 cd frontend
