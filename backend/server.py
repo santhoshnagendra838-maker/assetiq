@@ -56,7 +56,7 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/apichat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
         # Generate session ID if not provided
