@@ -80,16 +80,6 @@ variable "OPENAI_API_KEY" {
   sensitive   = true
 }
 
-variable "AWS_EXTERNAL_ID" {
-  type        = string
-  description = "AWS External ID"
-}
-
-variable "AWS_ROLE_ARN" {
-  type        = string
-  description = "AWS Role ARN"
-}
-
 variable "NEXT_PUBLIC_API_URL" {
   type        = string
   description = "Next Public API URL"
