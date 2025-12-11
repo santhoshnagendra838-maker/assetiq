@@ -2,8 +2,16 @@
 set -e
 
 # Configuration
-AWS_REGION="TF_VAR_AWS_REGION"
-AWS_ACCOUNT_ID="TF_VAR_AWS_ACCOUNT_ID"
+# Configuration
+AWS_REGION="${TF_VAR_AWS_REGION:-ap-south-1}"
+
+# Get Account ID from env var or AWS CLI
+if [ -n "$TF_VAR_AWS_ACCOUNT_ID" ]; then
+    AWS_ACCOUNT_ID="$TF_VAR_AWS_ACCOUNT_ID"
+else
+    AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+fi
+
 BUCKET_NAME="assetiq-terraform-state-${AWS_ACCOUNT_ID}"
 DYNAMODB_TABLE="assetiq-terraform-locks"
 
@@ -82,6 +90,38 @@ else
     aws dynamodb wait table-exists --table-name "$DYNAMODB_TABLE" --region "$AWS_REGION"
     echo "✅ DynamoDB table created"
 fi
+
+# Create ECR Repositories
+echo ""
+echo "🐳 Checking ECR Repositories..."
+
+create_ecr_repo() {
+    local repo_name=$1
+    if [ -z "$repo_name" ]; then
+        return
+    fi
+
+    echo "   Checking repo: $repo_name"
+    if aws ecr describe-repositories --repository-names "$repo_name" --region "$AWS_REGION" &>/dev/null; then
+        echo "   ✅ ECR repo $repo_name already exists"
+    else
+        echo "   Creating ECR repo: $repo_name"
+        aws ecr create-repository \
+            --repository-name "$repo_name" \
+            --region "$AWS_REGION" \
+            --image-scanning-configuration scanOnPush=false \
+            --no-cli-pager
+        echo "   ✅ ECR repo $repo_name created"
+    fi
+}
+
+# Use env vars passed from workflow or default to variables.tf values if possible (manual run)
+# For manual runs, users might need to export these or we default to the ones in variables.tf
+# But setup-backend.sh is bash, parsing HCL is hard. 
+# We will rely on env vars being set or fallback to what we see in ci-cd.yml
+
+create_ecr_repo "${ECR_BACKEND_REPOSITORY:-test/assetiq-backend}"
+create_ecr_repo "${ECR_FRONTEND_REPOSITORY:-test/assetiq-frontend}"
 
 echo ""
 echo "✨ Backend infrastructure setup complete!"

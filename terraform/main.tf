@@ -81,25 +81,13 @@ resource "aws_route_table_association" "private" {
 
 
 
-# ECR repositories (import existing ones)
-resource "aws_ecr_repository" "backend" {
+# ECR repositories (data source as they are bootstrapped)
+data "aws_ecr_repository" "backend" {
   name = var.backend_repo_name
-  
-  image_scanning_configuration {
-    scan_on_push = false
-  }
-  
-  tags = local.common_tags
 }
 
-resource "aws_ecr_repository" "frontend" {
+data "aws_ecr_repository" "frontend" {
   name = var.frontend_repo_name
-  
-  image_scanning_configuration {
-    scan_on_push = false
-  }
-  
-  tags = local.common_tags
 }
 
 resource "aws_cloudwatch_log_group" "backend" {

@@ -1,0 +1,199 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - docker_containers
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  # ECR Repository Names (Ensure these match your variable.tf defaults or pass them explicitly)
+  ECR_BACKEND_REPOSITORY: test/assetiq-backend
+  ECR_FRONTEND_REPOSITORY: test/assetiq-frontend
+
+
+permissions:
+  contents: read
+
+jobs:
+  # ------------------------------------------------------------------
+  # 0. Bootstrap Infrastructure (S3, DynamoDB, ECR)
+  # ------------------------------------------------------------------
+  bootstrap:
+    name: "Bootstrap Infrastructure"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Make Script Executable
+        run: chmod +x terraform/setup-backend.sh
+
+      - name: Run Setup Script
+        working-directory: ./terraform
+        run: ./setup-backend.sh
+        env:
+          TF_VAR_AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          # ECR Repos are pulled from workflow env
+
+  # ------------------------------------------------------------------
+  # 1. Build and Push Backend
+  # ------------------------------------------------------------------
+  build-backend:
+    name: "Build Backend"
+    needs: [bootstrap]
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Image Tag
+        id: meta
+        # Using Run ID as the tag
+        run: echo "image_tag=${{ github.run_id }}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPOSITORY }}:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------
+  # 2. Build and Push Frontend
+  # ------------------------------------------------------------------
+  build-frontend:
+    name: "Build Frontend"
+    needs: [bootstrap]
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Image Tag
+        id: meta
+        run: echo "image_tag=${{ github.run_id }}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND_REPOSITORY }}:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------
+  # 3. Deploy Infrastructure (Terraform)
+  # ------------------------------------------------------------------
+  deploy:
+    name: "Deploy Infrastructure"
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    env:
+      TF_VAR_AWS_REGION: ${{ secrets.AWS_REGION }}
+      TF_VAR_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      TF_VAR_environment: test
+      # Pass the image tags from the build jobs
+      TF_VAR_backend_image_tag: ${{ needs.build-backend.outputs.image_tag }}
+      TF_VAR_frontend_image_tag: ${{ needs.build-frontend.outputs.image_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format
+        run: terraform fmt -check
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var-file="test.tfvars" \
+            -no-color \
+            -input=false
+        env:
+          TF_VAR_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          TF_VAR_CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          TF_VAR_AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: |
+          terraform apply \
+            -var-file="test.tfvars" \
+            -auto-approve \
+            -input=false
+        env:
+          TF_VAR_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          TF_VAR_CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          TF_VAR_AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
