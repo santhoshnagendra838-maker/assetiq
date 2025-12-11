@@ -52,7 +52,7 @@ export default function InstrumentComparisonUI() {
       setComparison({
         a: instrumentA,
         b: instrumentB,
-        response: "Error: Unable to fetch comparison data. Please ensure the backend server is running on http://assetiq-test-alb-1291527958.ap-south-1.elb.amazonaws.com"
+        response: "Error: Unable to fetch comparison data. Please ensure the backend server is running on http://assetiq-test-alb-88125757.ap-south-1.elb.amazonaws.com/"
       });
     } finally {
       setLoading(false);
