@@ -247,7 +247,7 @@ resource "aws_ecs_task_definition" "backend" {
   container_definitions = jsonencode([
     {
       name      = "backend"
-      image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
+      image     = "${data.aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
       essential = true
       environment = [
         {
@@ -283,7 +283,7 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([
     {
       name      = "frontend"
-      image     = "${aws_ecr_repository.frontend.repository_url}:${var.frontend_image_tag}"
+      image     = "${data.aws_ecr_repository.frontend.repository_url}:${var.frontend_image_tag}"
       essential = true
       portMappings = [ { containerPort = 3000, hostPort = 3000 } ]
       logConfiguration = {

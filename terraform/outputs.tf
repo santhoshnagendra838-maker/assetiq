@@ -14,12 +14,12 @@ output "frontend_service_name" {
 }
 
 output "ecr_backend_repository_url" {
-  value = aws_ecr_repository.backend.repository_url
+  value = data.aws_ecr_repository.backend.repository_url
   description = "URL of the backend ECR repository"
 }
 
 output "ecr_frontend_repository_url" {
-  value = aws_ecr_repository.frontend.repository_url
+  value = data.aws_ecr_repository.frontend.repository_url
   description = "URL of the frontend ECR repository"
 }
 
