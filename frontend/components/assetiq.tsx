@@ -29,7 +29,7 @@ export default function InstrumentComparisonUI() {
 
     setLoading(true);
     try {
-      const apiUrl = "http://assetiq-test-alb-88125757.ap-south-1.elb.amazonaws.com/";
+      const apiUrl = "http://assetiq-test-alb-88125757.ap-south-1.elb.amazonaws.com";
       const response = await fetch(`${apiUrl}/api/chat`, {
         method: "POST",
         headers: {
