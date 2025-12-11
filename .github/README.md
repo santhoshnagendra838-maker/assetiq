@@ -8,7 +8,7 @@ The application is deployed on AWS using **ECS Fargate** for serverless containe
 
 ### Architecture Diagram
 
-![AssetIQ Architecture Diagram](./assetiq_architecture_diagram.png)
+![AssetIQ Architecture Diagram](../assetiq_architecture_diagram.png)
 
 ## Component Details
 
