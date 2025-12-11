@@ -42,8 +42,10 @@ Create a `.env` file in the `backend` directory:
 
 ```bash
 touch .env
+cp .env.example .env
+export $(grep -v '^#' .env | xargs)
 ```
-
+OR 
 Add the following environment variables:
 
 ```env
@@ -108,7 +110,7 @@ The server will start on `http://localhost:8000`
 ### Health Check
 
 ```bash
-GET /health
+GET /api/health
 ```
 
 **Response:**
@@ -121,7 +123,7 @@ GET /health
 ### Root
 
 ```bash
-GET /
+GET /api
 ```
 
 **Response:**
@@ -134,7 +136,7 @@ GET /
 ### Chat (Instrument Comparison)
 
 ```bash
-POST /chat
+POST /api/chat
 ```
 
 **Request Body:**
@@ -158,7 +160,7 @@ POST /chat
 ### Using cURL
 
 ```bash
-curl -X POST "http://localhost:8000/chat" \
+curl -X POST "http://localhost:8000/api/chat" \
   -H "Content-Type: application/json" \
   -d '{
     "session_id": "test-session-123",
@@ -172,7 +174,7 @@ curl -X POST "http://localhost:8000/chat" \
 import requests
 
 response = requests.post(
-    "http://localhost:8000/chat",
+    "http://localhost:8000/api/chat",
     json={
         "message": "Compare NIFTY50 ETF and Gold ETF on key metrics",
         "session_id": "my-session"

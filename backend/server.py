@@ -46,17 +46,17 @@ class ChatResponse(BaseModel):
     session_id: str
 
 
-@app.get("/")
+@app.get("/api/")
 async def root():
     return {"message": "AI research companion inside the FinMatrix platform"}
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
         # Generate session ID if not provided
