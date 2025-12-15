@@ -1,0 +1,63 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type "DESTROY" to confirm destruction'
+        required: true
+        default: ''
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: "Destroy Infrastructure"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirmation == 'DESTROY'
+    defaults:
+      run:
+        working-directory: ./terraform
+    env:
+      # Credentials
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      # Terraform Variables
+      TF_VAR_AWS_REGION: ${{ secrets.AWS_REGION }}
+      TF_VAR_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      TF_VAR_environment: test
+      # Dummy tags for destroy (required by variables.tf but value doesn't matter for destroy)
+      TF_VAR_backend_image_tag: "latest"
+      TF_VAR_frontend_image_tag: "latest"
+      # Other vars
+      TF_VAR_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      TF_VAR_NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      TF_VAR_CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: |
+          terraform destroy \
+            -var-file="test.tfvars" \
+            -auto-approve \
+            -input=false
